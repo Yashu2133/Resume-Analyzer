@@ -2,16 +2,16 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 
 const app = express();
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
@@ -60,15 +60,23 @@ Return exactly this JSON structure:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
+    const completion = await groq.chat.completions.create({
+      model: "openai/gpt-oss-20b",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+      response_format: {
+        type: "json_object",
       },
     });
 
-    const result = JSON.parse(response.text);
+    const result = JSON.parse(
+      completion.choices[0].message.content
+    );
 
     res.json(result);
   } catch (error) {
